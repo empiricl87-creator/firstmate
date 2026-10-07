@@ -57,6 +57,14 @@ A bare shell row is `unknown`, not an empty agent composer, and plain-text captu
 The watcher has no native Orca busy signal, so each harness adapter's semantic lifecycle supplies worker state.
 Grok alone retains its isolated rendered-tail fallback.
 
+`fm-control.sh <id> relaunch --harness <name> --note <progress>` supports a receipt-proven replacement on the verified local Orca runtime.
+The compatibility guard, exact scoped inventory checks, durable stop receipt and retry mechanics are owned by `bin/backends/orca.sh`.
+This closes the recorded terminal and creates a replacement terminal in the same preserved worktree, retaining the task id, instructions, report, release state and approval boundaries.
+Another connected or unattributed endpoint in that worktree refuses before the recorded terminal is touched; Firstmate must reconcile it separately rather than close peers implicitly.
+An uncertain close retains metadata and close evidence and never launches a replacement.
+The control result reports `prior-agent=stopped replacement=unconfirmed`: launch delivery is proven, while agent liveness still requires inspection.
+Orca's `exit`, Escape interrupt and recovery-grade agent classifier remain unsupported.
+
 Cleanup keeps all shared Firstmate safety checks.
 A scout still requires its report and completed decision inventory.
 A ship still refuses dirty or unlanded work.
@@ -73,7 +81,7 @@ Reinstall the CLI and rerun; [`verification/runtime-backends.md`](verification/r
 - The app must be running and report ready.
 - Secondmate spawns are unsupported.
 - Escape is unsupported.
-- Orca exposes no stable CLI version or protocol marker, so readiness is the compatibility gate rather than a version floor.
+- Ordinary spawn uses readiness as its compatibility gate; receipt-proven relaunch additionally restricts the runtime version to the one verified in [`runtime backend verification`](verification/runtime-backends.md#orca).
 - Only the verified terminal-handle and worktree result fields are accepted; speculative response shapes are rejected.
 - Orca's worktree shape is unverified against the spawn-time Claude workspace-trust check in `bin/fm-claude-trust.sh`, which refuses any path that is not a linked git worktree sharing the project's git common dir, so a claude spawn on Orca fails loudly at that check rather than launching if Orca clones instead of linking.
 
@@ -81,6 +89,7 @@ Reinstall the CLI and rerun; [`verification/runtime-backends.md`](verification/r
 
 ```sh
 tests/fm-backend-orca.test.sh
+tests/fm-spawn-orca-worktree.test.sh
 tests/fm-backend.test.sh
 tests/fm-bootstrap.test.sh
 tests/fm-teardown-endpoint-safety.test.sh

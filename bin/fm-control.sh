@@ -86,6 +86,12 @@
 #              the prior durable record in place and reports the concrete
 #              state; it never leaves a half-transitioned task claiming to be
 #              running.
+#              Orca has a separate relaunch-only path: the launch owner closes
+#              the exact recorded terminal with a confirmed PTY-stop receipt,
+#              then creates a terminal in the preserved worktree. No lifecycle
+#              text is sent into the old prompt. Its result is launch-delivered,
+#              replacement=unconfirmed, because Orca has no recovery-grade
+#              agent classifier. `exit` and Escape interrupts remain unsupported.
 #
 # Teardown and discard are NOT verbs here and never will be. `exit` stops an
 # agent and preserves everything else; removing a worktree, killing an
@@ -114,8 +120,8 @@
 #     (Orca's terminal API has no Escape).
 #   - `exit` and `relaunch` require a backend with a recovery-grade agent-state
 #     classifier (tmux, herdr), because without one the "the agent stopped"
-#     postcondition cannot be proven. zellij, orca, and cmux are refused rather
-#     than reported as successful blind.
+#     postcondition cannot be proven. zellij and cmux refuse both; Orca refuses
+#     exit and uses the receipt-proven relaunch exception described above.
 #   - An ambiguous or unreadable endpoint state refuses; only a positively
 #     classified state acts.
 #   - A composer that visibly holds pending text refuses before an exit command
@@ -396,6 +402,9 @@ wait_agent_state() {  # <timeout> <wanted>...
 }
 
 require_state_verified_backend() {  # <verb>
+  # Orca relaunch proves the stop through the launch owner receipt, not through
+  # an agent classifier. It never relaxes exit or interrupt capabilities.
+  [ "$1" != relaunch ] || [ "$BACKEND" != orca ] || return 0
   fm_control_backend_state_verified "$BACKEND" && return 0
   die "task $ID runs on the $BACKEND backend, which has no recovery-grade agent-state classifier, so '$1' cannot prove the agent actually stopped; refusing rather than reporting an unproven transition as done"
 }
@@ -814,6 +823,20 @@ relaunch_rollback() {
   [ "$RELAUNCH_ACTIVE" = 1 ] || return 0
   [ "$RELAUNCH_PHASE" != complete ] || return 0
   RELAUNCH_ACTIVE=0
+  if [ "$BACKEND" = orca ]; then
+    # Orca has no classifier, so neither a failed close nor failed launch is a
+    # claim about who is running. Preserve both the original record (until the
+    # launch owner publishes) and the exact close/replacement evidence.
+    if [ "$RELAUNCH_META_PUBLISHED" != 1 ] \
+       && { [ -z "$RELAUNCH_TX" ] || [ "$(fm_meta_get "$META" control_relaunch_tx)" != "$RELAUNCH_TX" ]; }; then
+      if [ -n "$RELAUNCH_BRIEF" ] && [ -f "$BRIEF_PRIOR" ]; then
+        cp -p "$BRIEF_PRIOR" "$RELAUNCH_BRIEF" 2>/dev/null || true
+      fi
+    fi
+    journal_write "failed:$RELAUNCH_PHASE" "rollback=records-and-orca-evidence-retained" || true
+    echo "error: Orca relaunch of $ID failed; stop and replacement liveness are not inferred. Task metadata, worktree, and close evidence at $STATE/$ID.orca-stop.json are retained; reconcile any endpoint in $STATE/$ID.orca-replacement-terminal before retrying" >&2
+    return 0
+  fi
   case "$RELAUNCH_PHASE" in
     checkpoint|noted)
       # The old agent was never touched. Restore the instructions byte-exact so
@@ -1063,6 +1086,11 @@ do_relaunch() {
 
   require_state_verified_backend relaunch
   resolve_relaunch_profile
+  if [ "$BACKEND" = orca ]; then
+    fm_backend_source orca || exit 1
+    fm_backend_orca_relaunch_check "$T" "$(fm_meta_get "$META" orca_worktree_id)" "$WT" \
+      "$STATE/$ID.orca-stop.json" >/dev/null || exit 1
+  fi
 
   case "$KIND" in
     ship|scout)
@@ -1096,8 +1124,14 @@ do_relaunch() {
   journal_write noted "${CHECKPOINT_LINES[@]}" "$note_line"
 
   journal_write stopping "${CHECKPOINT_LINES[@]}" "$note_line"
-  exit_result=$(do_exit)
-  journal_write exited "${CHECKPOINT_LINES[@]}" "$note_line" "exit_result=$exit_result"
+  if [ "$BACKEND" = orca ]; then
+    # Stop and rebind are one launch-owner operation. The launch owner repeats
+    # the exact scoped preflight under its metadata lock before closing anything.
+    exit_result=receipt-required
+  else
+    exit_result=$(do_exit)
+    journal_write exited "${CHECKPOINT_LINES[@]}" "$note_line" "exit_result=$exit_result"
+  fi
 
   # The launch owner (fm-spawn --relaunch) clears the previous incarnation's
   # per-task harness wiring before arming the new one, so nothing to do here.
@@ -1132,6 +1166,13 @@ do_relaunch() {
     die "the replacement agent for $ID could not be launched on $TARGET_HARNESS"
   fi
 
+  if [ "$BACKEND" = orca ]; then
+    journal_write complete "${CHECKPOINT_LINES[@]}" "$note_line" \
+      "exit_result=receipt-confirmed" "replacement=unconfirmed"
+    RELAUNCH_ACTIVE=0
+    echo "relaunch-delivered $ID harness=$TARGET_HARNESS from=$PRIOR_RECORDED_HARNESS backend=$BACKEND endpoint=$T worktree=$WT prior-agent=stopped replacement=unconfirmed"
+    return 0
+  fi
   state=$(wait_agent_state "$LAUNCH_WAIT" alive) || {
     die "the replacement agent for $ID did not come up within ${LAUNCH_WAIT}s (endpoint reads '$state')"
   }

@@ -80,6 +80,9 @@
 #   rebind is a recovery, never a teardown. Only a crewmate or scout rebinds: a
 #   secondmate whose endpoint is gone is respawned by its own owner
 #   (`--secondmate`, driven by the session-start liveness sweep).
+#   recorded Orca worker instead follows bin/backends/orca.sh receipt-proven
+#   terminal replacement. It closes only the recorded terminal, keeps the same
+#   worktree, and refuses competing worktree endpoints or unconfirmed stops.
 #   Every fresh ship/scout launch and replacement explicitly enters the recorded
 #   worktree immediately before trust setup and brief delivery, and a pre-launch
 #   cwd check refuses any endpoint that still reports another copy; a Herdr shell
@@ -1748,8 +1751,14 @@ if [ "$RELAUNCH" -eq 1 ]; then
   fm_backend_validate_spawn "$BACKEND" || exit 1
   fm_backend_source "$BACKEND" || exit 1
   # A relaunch must PROVE the previous agent is gone before it launches another
-  # one into the same endpoint, and only tmux and herdr have a recovery-grade
-  # classifier that can (bin/fm-control-lib.sh owns that capability table).
+  # one into the same endpoint. tmux/herdr use the recovery classifier; Orca
+  # instead closes the exact endpoint with a runtime-proven stop receipt and
+  # creates a new terminal in the same worktree below.
+  if [ "$BACKEND" = orca ]; then
+    fm_backend_orca_relaunch_check "$RELAUNCH_TARGET" \
+      "$(fm_meta_get "$RELAUNCH_META" orca_worktree_id)" \
+      "$(fm_meta_get "$RELAUNCH_META" worktree)" "$STATE/$ID.orca-stop.json" >/dev/null || exit 1
+  else
   fm_control_backend_state_verified "$BACKEND" || {
     echo "error: backend '$BACKEND' has no recovery-grade agent-state classifier, so a relaunch cannot prove the previous agent exited; refusing rather than risking two agents in one endpoint" >&2
     exit 1
@@ -1804,6 +1813,7 @@ if [ "$RELAUNCH" -eq 1 ]; then
       exit 1
       ;;
   esac
+  fi
   RELAUNCH_PRIOR_HARNESS=$(fm_meta_get "$RELAUNCH_META" harness)
   KIND=$(fm_meta_get "$RELAUNCH_META" kind)
   [ -n "$KIND" ] || KIND=ship
@@ -3583,7 +3593,21 @@ if [ "$RELAUNCH" -eq 1 ]; then
   # uncommitted changes are exactly as the previous agent left them, and nothing
   # below may touch them.
   [ "$KIND" = secondmate ] || WT=$RELAUNCH_WT
-  if [ "$RELAUNCH_REBIND" -eq 0 ]; then
+  if [ "$BACKEND" = orca ]; then
+    ORCA_WORKTREE_ID=$(fm_meta_get "$RELAUNCH_META" orca_worktree_id)
+    # The same worktree and task survive. A close without a confirmed receipt
+    # never reaches terminal creation, and no worktree cleanup is armed here.
+    fm_backend_orca_relaunch_stop "$RELAUNCH_TARGET" "$ORCA_WORKTREE_ID" "$WT" \
+      "$STATE/$ID.orca-stop.json" || exit 1
+    ORCA_TERMINAL=$(fm_backend_orca_terminal_create "$ORCA_WORKTREE_ID" "$W") || exit 1
+    T=$ORCA_TERMINAL
+    WT_TARGET=$T
+    # Retain the new endpoint identity even if a later pre-publication gate
+    # refuses. It is a shell until launch delivery; the original meta remains.
+    printf '%s\n' "$T" > "$STATE/$ID.orca-replacement-terminal"
+    fm_backend_orca_relaunch_check "$RELAUNCH_TARGET" "$ORCA_WORKTREE_ID" "$WT" \
+      "$STATE/$ID.orca-stop.json" replacement "$T" >/dev/null || exit 1
+  elif [ "$RELAUNCH_REBIND" -eq 0 ]; then
     # Adopt the recorded endpoint instead of creating one. This is what keeps a
     # relaunch a REPLACEMENT rather than a second copy of the task: no new
     # terminal, no second worktree, and every uncommitted change left exactly
@@ -3964,7 +3988,13 @@ spawn_enter_recorded_worktree() {
 spawn_assert_agent_worktree() {
   local expected seen i
   [ "$KIND" = secondmate ] && return 0
-  [ "$BACKEND" = orca ] && return 0
+  if [ "$BACKEND" = orca ]; then
+    if [ "$RELAUNCH" -eq 1 ]; then
+      fm_backend_orca_relaunch_check "$RELAUNCH_TARGET" "$ORCA_WORKTREE_ID" "$WT" \
+        "$STATE/$ID.orca-stop.json" replacement "$T" >/dev/null || exit 1
+    fi
+    return 0
+  fi
   expected=$(real_path_or_raw "$WT")
   for i in $(seq 1 20); do
     seen=$(spawn_current_path "$WT_TARGET" || true)

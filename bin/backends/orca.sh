@@ -296,3 +296,119 @@ fm_backend_orca_kill() {  # <terminal-id>
   fm_backend_orca_tool_check || return 1
   orca terminal close --terminal "$1" --json >/dev/null 2>&1 || true
 }
+
+# Orca relaunch is a receipt-proven endpoint replacement, NOT an agent-state
+# classifier. Only the local 1.4.222 runtime was inspected for stopAndWait's
+# incarnation-bound PTY-exit proof; older/other runtimes must not turn a mere
+# kill dispatch into a stop claim. Keep that compatibility guard exact until
+# refreshed (docs/verification/runtime-backends.md, "Orca").
+#
+# The task-local receipt preserves the status, authoritative worktree-scoped
+# inventory and close response. An interrupted caller can reuse a confirmed
+# receipt only on the same runtime and incarnation, with the old PTY absent or
+# disconnected. Unknown, truncated, omitted-host, contradictory and peer-live
+# inventories refuse. We never close a peer or remove a worktree.
+fm_backend_orca_relaunch_check() {  # <terminal> <worktree-id> <path> <receipt> [prepare|replacement] [replacement-terminal]
+  local terminal=$1 worktree_id=$2 path=$3 receipt=$4 mode=${5:-check} replacement=${6:-} status inventory
+  fm_backend_orca_tool_check || return 1
+  status=$(orca status --json) || return 1
+  inventory=$(orca terminal list --worktree "id:$worktree_id" --limit 100 --json) || return 1
+  node -e '
+const fs = require("fs");
+const [handle, wt, path, file, mode, replacement, statusRaw, inventoryRaw] = process.argv.slice(1);
+function refuse(message) { throw new Error(message); }
+function requireFact(value, message) { if (!value) refuse(message); }
+function identity(t) {
+  requireFact(t && t.worktreeId === wt && t.worktreePath === path &&
+    t.executionHostId === "local" && typeof t.handle === "string" && t.handle &&
+    typeof t.ptyId === "string" && t.ptyId && typeof t.incarnationId === "string" && t.incarnationId &&
+    typeof t.connected === "boolean" && typeof t.writable === "boolean",
+    "unattributed terminal in the recorded Orca worktree");
+}
+try {
+  const status = JSON.parse(statusRaw), inventory = JSON.parse(inventoryRaw);
+  const runtime = status.result?.runtime;
+  requireFact(status.ok === true && status.result?.target?.kind === "local" &&
+    runtime?.reachable === true && runtime.state === "ready" && runtime.appVersion === "1.4.222" &&
+    typeof runtime.runtimeId === "string" && runtime.runtimeId && status._meta?.runtimeId === runtime.runtimeId,
+    "Orca relaunch requires the verified local runtime 1.4.222 and its runtime identity");
+  const r = inventory.result;
+  requireFact(inventory.ok === true && inventory._meta?.runtimeId === runtime.runtimeId &&
+    Array.isArray(r?.terminals) && r.truncated === false && r.totalCount === r.terminals.length &&
+    Array.isArray(r.hostScope?.hostIds) && r.hostScope.hostIds.length === 1 && r.hostScope.hostIds[0] === "local" &&
+    Array.isArray(r.hostScope.omittedHostIds) && r.hostScope.omittedHostIds.length === 0,
+    "Orca worktree terminal inventory is incomplete or belongs to another runtime");
+  const seen = new Set();
+  for (const t of r.terminals) {
+    identity(t);
+    requireFact(!seen.has(t.handle), "duplicate terminal identity in Orca inventory"); seen.add(t.handle);
+    if (t.handle !== handle && t.handle !== replacement) {
+      requireFact(t.connected === false && t.writable === false,
+        "another Orca endpoint may own the recorded worktree: " + t.handle);
+    }
+  }
+  const current = r.terminals.find(t => t.handle === handle);
+  let proof = null;
+  if (fs.existsSync(file)) {
+    requireFact(fs.lstatSync(file).isFile(), "Orca stop receipt is not a regular file");
+    proof = JSON.parse(fs.readFileSync(file, "utf8"));
+  }
+  const prior = proof?.inventory?.result?.terminals?.find(t => t.handle === handle);
+  const close = proof?.close?.result?.close;
+  const confirmed = proof?.status?.result?.runtime?.appVersion === "1.4.222" &&
+    proof.status.result.runtime.runtimeId === runtime.runtimeId && proof.status._meta?.runtimeId === runtime.runtimeId &&
+    proof.inventory?.ok === true && proof.inventory._meta?.runtimeId === runtime.runtimeId &&
+    prior?.worktreeId === wt && prior.worktreePath === path && prior.executionHostId === "local" &&
+    typeof prior.ptyId === "string" && prior.ptyId && typeof prior.incarnationId === "string" && prior.incarnationId &&
+    proof.close?.ok === true && proof.close._meta?.runtimeId === runtime.runtimeId &&
+    close?.handle === handle && close.ptyKilled === true && close.pendingKillRecorded !== true &&
+    close.ptyStopVerdict === undefined;
+  if (confirmed) {
+    requireFact(!current || (current.ptyId === prior.ptyId && current.incarnationId === prior.incarnationId &&
+      current.connected === false && current.writable === false),
+      "Orca stop receipt contradicts the current terminal incarnation or liveness");
+    if (mode === "replacement") {
+      const next = r.terminals.find(t => t.handle === replacement);
+      requireFact(replacement !== handle && next?.connected === true && next.writable === true,
+        "replacement Orca terminal is not bound to the preserved worktree");
+    }
+    process.stdout.write("stopped");
+  } else {
+    requireFact(mode !== "replacement", "no confirmed Orca stop receipt for the previous agent");
+    requireFact(current?.connected === true && current.writable === true,
+      "recorded Orca terminal is absent or disconnected without a confirmed stop receipt");
+    if (mode === "prepare") {
+      requireFact(!fs.existsSync(file) || fs.lstatSync(file).isFile(), "unsafe Orca stop receipt path");
+      requireFact(!fs.existsSync(file + ".tmp"), "pending Orca stop receipt write must be reconciled");
+      fs.writeFileSync(file + ".tmp", JSON.stringify({status, inventory, close: null}) + "\n", {flag: "wx", mode: 0o600});
+      fs.renameSync(file + ".tmp", file);
+    }
+    process.stdout.write("ready");
+  }
+} catch (e) { console.error("error: " + e.message); process.exit(1); }
+' "$terminal" "$worktree_id" "$path" "$receipt" "$mode" "$replacement" "$status" "$inventory"
+}
+
+fm_backend_orca_relaunch_stop() {  # <terminal> <worktree-id> <path> <receipt>
+  local terminal=$1 worktree_id=$2 path=$3 receipt=$4 state out rc=0
+  state=$(fm_backend_orca_relaunch_check "$terminal" "$worktree_id" "$path" "$receipt" prepare) || return 1
+  [ "$state" != stopped ] || return 0
+  # Capture even a failing close response: a committed surface close with an
+  # unconfirmed process stop is evidence to retain, never permission to launch.
+  out=$(orca terminal close --terminal "$terminal" --json) || rc=$?
+  node -e '
+const fs = require("fs"), [file, raw] = process.argv.slice(1);
+try {
+  const proof = JSON.parse(fs.readFileSync(file, "utf8"));
+  try { proof.close = JSON.parse(raw); } catch { proof.close = null; proof.closeRaw = raw; }
+  fs.writeFileSync(file + ".tmp", JSON.stringify(proof) + "\n", {flag: "wx", mode: 0o600});
+  fs.renameSync(file + ".tmp", file);
+} catch (e) { console.error("error: could not preserve Orca close evidence: " + e.message); process.exit(1); }
+' "$receipt" "$out" || return 1
+  [ "$rc" -eq 0 ] || { echo "error: Orca close did not confirm the recorded agent stopped; evidence retained at $receipt" >&2; return 1; }
+  state=$(fm_backend_orca_relaunch_check "$terminal" "$worktree_id" "$path" "$receipt") || return 1
+  [ "$state" = stopped ] || {
+    echo "error: Orca close lacks a confirmed, matching PTY-stop receipt; preserving task metadata ($receipt)" >&2
+    return 1
+  }
+}

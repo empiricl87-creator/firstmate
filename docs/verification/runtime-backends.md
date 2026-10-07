@@ -1908,6 +1908,38 @@ tests/fm-bootstrap.test.sh
 
 The fake-Orca suite covers readiness, registration, create response parsing, metadata routing, popup-safe submit, and path-matched release refusal.
 
+### Receipt-proven relaunch
+
+On 2026-10-07 the installed Orca 1.4.222 CLI and runtime source were inspected, and the runtime was read without lifecycle input.
+
+```sh
+orca status --json | node -e 'const d=JSON.parse(require("fs").readFileSync(0,"utf8")); console.log("target="+d.result.target.kind+" runtime="+d.result.runtime.state+" appVersion="+d.result.runtime.appVersion)'
+```
+
+```text
+target=local runtime=ready appVersion=1.4.222
+```
+
+The shipped CLI's `out/cli/handlers/terminal-close.js` reports `terminal_stop_live` or `terminal_stop_unverifiable` when a close has a negative stop receipt.
+The bundled runtime's `stopExplicitlyClosedTabPtys` awaits the installed PTY controller's `stopAndWait`, with its incarnation-bound exit observation, before setting `ptyKilled=true`.
+Older close shapes can succeed without this proof, so the relaunch guard accepts only this exact local runtime version, matching runtime identities and a positive receipt for the exact recorded handle.
+`bin/backends/orca.sh` owns the receipt protocol and inventory checks; [`Orca lifecycle and safety`](../orca-backend.md#current-lifecycle-and-safety) owns the operator-facing behavior.
+The recovery path does not add an Orca agent classifier or claim that a delivered replacement is running.
+
+```sh
+bash bin/fm-test-run.sh tests/fm-spawn-orca-worktree.test.sh
+```
+
+```text
+ok - Orca control relaunch: confirmed stop precedes Codex delivery, preserving dirty work, report and approval
+ok - Orca relaunch: uncertain, malformed, mismatched, contradictory and stale-runtime stop receipts retain state and refuse
+ok - Orca relaunch: competing orphaned PTYs and incomplete or unverified inventories refuse before touching agents
+ok - Orca spawn relaunch: creation failure retains the record; retry reuses confirmed incarnation stop evidence
+```
+
+These regressions drive the public control and spawn interfaces with a hermetic Orca protocol fixture and real temporary git checkouts.
+Live production terminals were inspected read-only; no live stop or replacement was exercised for this verification.
+
 ## cmux
 
 The current compatibility floor is cmux 0.64, and the active live evidence uses 0.64.17 build 97 on macOS aarch64.
