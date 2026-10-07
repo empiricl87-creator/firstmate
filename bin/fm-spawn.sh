@@ -1755,6 +1755,21 @@ if [ "$RELAUNCH" -eq 1 ]; then
   # instead closes the exact endpoint with a runtime-proven stop receipt and
   # creates a new terminal in the same worktree below.
   if [ "$BACKEND" = orca ]; then
+    relaunch_journal="$STATE/$ID.control-relaunch"
+    if [ "$SPAWN_CONTROL_PARENT" != 1 ] || [ -z "${FM_CONTROL_RELAUNCH_TX:-}" ] \
+       || [ "$(fm_meta_get "$relaunch_journal" phase)" != launching ] \
+       || [ "$(fm_meta_get "$relaunch_journal" relaunch_tx)" != "$FM_CONTROL_RELAUNCH_TX" ] \
+       || [ "$(fm_meta_get "$relaunch_journal" task)" != "$ID" ] \
+       || [ "$(fm_meta_get "$relaunch_journal" backend)" != orca ] \
+       || [ "$(fm_meta_get "$relaunch_journal" endpoint)" != "$RELAUNCH_TARGET" ] \
+       || [ "$(fm_meta_get "$relaunch_journal" worktree)" != "$(fm_meta_get "$RELAUNCH_META" worktree)" ] \
+       || [ -z "$(fm_meta_get "$relaunch_journal" worktree_head)" ] \
+       || [ -z "$(fm_meta_get "$relaunch_journal" worktree_dirty)" ] \
+       || [ "$(fm_meta_get "$relaunch_journal" note_file)" != "$relaunch_journal.note" ] \
+       || [ ! -s "$relaunch_journal.note" ]; then
+      echo "error: Orca relaunch requires the checkpointed, noted fm-control transaction" >&2
+      exit 1
+    fi
     fm_backend_orca_relaunch_check "$RELAUNCH_TARGET" \
       "$(fm_meta_get "$RELAUNCH_META" orca_worktree_id)" \
       "$(fm_meta_get "$RELAUNCH_META" worktree)" "$STATE/$ID.orca-stop.json" >/dev/null || exit 1
@@ -3595,6 +3610,7 @@ if [ "$RELAUNCH" -eq 1 ]; then
   [ "$KIND" = secondmate ] || WT=$RELAUNCH_WT
   if [ "$BACKEND" = orca ]; then
     ORCA_WORKTREE_ID=$(fm_meta_get "$RELAUNCH_META" orca_worktree_id)
+    validate_spawn_worktree "relaunch" "$RELAUNCH_TARGET"
     # The same worktree and task survive. A close without a confirmed receipt
     # never reaches terminal creation, and no worktree cleanup is armed here.
     fm_backend_orca_relaunch_stop "$RELAUNCH_TARGET" "$ORCA_WORKTREE_ID" "$WT" \

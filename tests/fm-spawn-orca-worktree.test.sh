@@ -86,6 +86,10 @@ case "$1 $2" in
     exit 0
     ;;
   "terminal list")
+    if [ -e "$DIR/invalid-after-checkpoint" ] && [ -e "$DIR/wt/.git" ] \
+       && [ "$(grep -c '^terminal list ' "$DIR/calls")" -ge 2 ]; then
+      mv "$DIR/wt/.git" "$DIR/wt/.git-invalid"
+    fi
     node <<'JS'
 const fs = require("fs"), d = process.env.FM_TEST_ORCA_DIR;
 const has = n => fs.existsSync(d + "/" + n);
@@ -201,7 +205,7 @@ EOF
     FM_STATE_OVERRIDE="$home/state" FM_DATA_OVERRIDE="$home/data" \
     FM_PROJECTS_OVERRIDE="$home/projects" FM_CONFIG_OVERRIDE="$home/config" \
     FM_SPAWN_NO_GUARD=1 FM_TEST_ORCA_DIR="$case_dir" PATH="$fb:$PATH" \
-    "$SPAWN" "$id" --relaunch 2>&1)
+    "$ROOT/bin/fm-control.sh" "$id" relaunch --note 'Resume this task' 2>&1)
   status=$?
 
   expect_code 1 "$status" "a relaunch against a recorded Orca task should refuse"$'\n'"$out"
@@ -299,15 +303,39 @@ test_orca_relaunch_retry_reuses_confirmed_receipt() {
   local dir out rc
   dir=$(orca_relaunch_case retry-after-stop)
   touch "$dir/create-fails"
-  out=$(orca_run "$dir" spawn --relaunch --harness codex); rc=$?
+  out=$(orca_run "$dir" control relaunch --harness codex --note 'Resume the preserved release'); rc=$?
   expect_code 1 "$rc" "replacement creation failure must refuse"$'\n'"$out"
   cmp -s "$dir/meta-prior" "$dir/home/state/orca-recovery.meta" || fail 'failed creation changed prior metadata'
   mv "$dir/create-fails" "$dir/create-failure-handled"
-  out=$(orca_run "$dir" spawn --relaunch --harness codex); rc=$?
+  out=$(orca_run "$dir" control relaunch --harness codex --note 'Resume the preserved release'); rc=$?
   expect_code 0 "$rc" "retry with confirmed stop evidence should succeed"$'\n'"$out"
   [ "$(grep -c '^terminal close ' "$dir/calls")" = 1 ] || fail 'retry repeated the old endpoint close'
   assert_contains "$(cat "$dir/home/state/orca-recovery.meta")" 'terminal=term-2' 'retry did not record replacement'
-  pass 'Orca spawn relaunch: creation failure retains the record; retry reuses confirmed incarnation stop evidence'
+  pass 'Orca control relaunch: creation failure retains the record; retry reuses confirmed incarnation stop evidence'
+}
+
+test_orca_direct_relaunch_refuses_before_close() {
+  local dir out rc
+  dir=$(orca_relaunch_case direct-refusal)
+  out=$(orca_run "$dir" spawn --relaunch --harness codex); rc=$?
+  expect_code 1 "$rc" "direct Orca relaunch must refuse"$'\n'"$out"
+  assert_contains "$out" 'checkpointed, noted fm-control transaction' 'direct refusal must identify the missing transaction'
+  assert_absent "$dir/calls" 'direct invocation reached Orca before refusing'
+  cmp -s "$dir/meta-prior" "$dir/home/state/orca-recovery.meta" || fail 'direct refusal changed metadata'
+  cmp -s "$dir/brief-prior" "$dir/home/data/orca-recovery/brief.md" || fail 'direct refusal changed instructions'
+  pass 'Direct Orca spawn relaunch refuses before closing the recorded agent'
+}
+
+test_orca_invalid_worktree_refuses_before_close() {
+  local dir out rc
+  dir=$(orca_relaunch_case invalid-before-close)
+  touch "$dir/invalid-after-checkpoint"
+  out=$(orca_run "$dir" control relaunch --harness codex --note 'Resume the preserved release'); rc=$?
+  expect_code 1 "$rc" "invalidated Orca worktree must refuse"$'\n'"$out"
+  assert_not_contains "$(cat "$dir/calls")" 'terminal close' 'invalid worktree closed the prior agent'
+  assert_not_contains "$(cat "$dir/calls")" 'terminal create' 'invalid worktree created a replacement'
+  cmp -s "$dir/meta-prior" "$dir/home/state/orca-recovery.meta" || fail 'invalid worktree changed metadata'
+  pass 'Orca relaunch rechecks its worktree before closing the recorded agent'
 }
 
 test_orca_fresh_spawn_enters_the_worktree_it_created
@@ -316,5 +344,7 @@ test_orca_control_relaunch_proves_stop_and_preserves_release
 test_orca_relaunch_refuses_uncertain_stop
 test_orca_relaunch_refuses_other_worktree_owners_and_incomplete_reads
 test_orca_relaunch_retry_reuses_confirmed_receipt
+test_orca_direct_relaunch_refuses_before_close
+test_orca_invalid_worktree_refuses_before_close
 
 echo "# all fm-spawn-orca-worktree tests passed"

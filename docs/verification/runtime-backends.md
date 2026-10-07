@@ -1934,7 +1934,9 @@ bash bin/fm-test-run.sh tests/fm-spawn-orca-worktree.test.sh
 ok - Orca control relaunch: confirmed stop precedes Codex delivery, preserving dirty work, report and approval
 ok - Orca relaunch: uncertain, malformed, mismatched, contradictory and stale-runtime stop receipts retain state and refuse
 ok - Orca relaunch: competing orphaned PTYs and incomplete or unverified inventories refuse before touching agents
-ok - Orca spawn relaunch: creation failure retains the record; retry reuses confirmed incarnation stop evidence
+ok - Orca control relaunch: creation failure retains the record; retry reuses confirmed incarnation stop evidence
+ok - Direct Orca spawn relaunch refuses before closing the recorded agent
+ok - Orca relaunch rechecks its worktree before closing the recorded agent
 ```
 
 These regressions drive the public control and spawn interfaces with a hermetic Orca protocol fixture and real temporary git checkouts.

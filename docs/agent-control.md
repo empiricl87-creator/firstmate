@@ -175,6 +175,7 @@ The worktree and the task's records are unaffected either way.
 - `fm-spawn --relaunch` independently refuses unless the endpoint is positively agent-free - either a `dead` endpoint that survives, or a Herdr endpoint proven gone by the absence proof above - so a replacement can never join a live agent.
   An `alive`, `ambiguous`, or `unreadable` verdict all refuse, and so does any endpoint whose absence is not provable, which on tmux is every `missing`; absence is claimed only from positive evidence of it.
   It also requires the shell to be in the recorded worktree: every backend but Orca (which owns its own task worktree with no current-path probe) gets one explicit `cd` to the recorded path, then a pre-launch path read that refuses before any harness starts unless it confirms the endpoint is sitting in the recorded copy.
+  Orca accepts `fm-spawn --relaunch` only as the child of `fm-control`'s checkpointed and noted transaction, and checks its recorded worktree again before closing the old terminal.
 
 ## Capability matrix
 

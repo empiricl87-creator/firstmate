@@ -58,6 +58,7 @@ The watcher has no native Orca busy signal, so each harness adapter's semantic l
 Grok alone retains its isolated rendered-tail fallback.
 
 `fm-control.sh <id> relaunch --harness <name> --note <progress>` supports a receipt-proven replacement on the verified local Orca runtime.
+Direct `fm-spawn.sh <id> --relaunch` refuses for Orca; a confirmed-stop retry must also run through `fm-control.sh` so the checkpoint and progress note are recorded before any stop.
 The compatibility guard, exact scoped inventory checks, durable stop receipt and retry mechanics are owned by `bin/backends/orca.sh`.
 This closes the recorded terminal and creates a replacement terminal in the same preserved worktree, retaining the task id, instructions, report, release state and approval boundaries.
 Another connected or unattributed endpoint in that worktree refuses before the recorded terminal is touched; Firstmate must reconcile it separately rather than close peers implicitly.
