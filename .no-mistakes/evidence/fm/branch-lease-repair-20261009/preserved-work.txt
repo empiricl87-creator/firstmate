@@ -1,0 +1,18 @@
+Git status after failed turn:
+ M unlanded.txt
+?? untracked.txt
+
+Git diff after failed turn:
+diff --git a/unlanded.txt b/unlanded.txt
+index 4c609e8..dc04d7b 100644
+--- a/unlanded.txt
++++ b/unlanded.txt
+@@ -1 +1 @@
+-initial tracked content
++uncommitted changes must survive failed supervision
+
+Untracked content:
+untracked work must also survive
+
+Unacknowledged wake queue:
+1791535360	1	signal	xop-mac2.status	signal: isolated reservation lifecycle proof

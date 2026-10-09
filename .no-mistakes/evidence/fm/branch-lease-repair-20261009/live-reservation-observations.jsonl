@@ -1,0 +1,31 @@
+{"time":"2026-10-09T08:30:25.115Z","event":"lock","exit":0,"stdout":"lock acquired: harness pid 44563\n","stderr":"","pid":44563}
+{"time":"2026-10-09T08:30:25.165Z","event":"lease CLI","actor":"branch","args":["claim","xop-mac2"],"exit":0,"stdout":"","stderr":""}
+{"time":"2026-10-09T08:30:25.217Z","event":"lease CLI","actor":"main","args":["claim","xop-mac2"],"exit":6,"stdout":"","stderr":"error: claim refused - task 'xop-mac2' is leased to the branch supervision actor (state/.lease-xop-mac2)\n"}
+{"time":"2026-10-09T08:30:25.268Z","event":"lease CLI","actor":"branch","args":["claim","recurring-process-audit"],"exit":0,"stdout":"","stderr":""}
+{"time":"2026-10-09T08:30:25.318Z","event":"lease CLI","actor":"main","args":["claim","recurring-process-audit"],"exit":6,"stdout":"","stderr":"error: claim refused - task 'recurring-process-audit' is leased to the branch supervision actor (state/.lease-recurring-process-audit)\n"}
+{"time":"2026-10-09T08:30:25.367Z","event":"lease CLI","actor":"main","args":["claim","main-active"],"exit":0,"stdout":"","stderr":""}
+{"time":"2026-10-09T08:30:36.548Z","event":"lease CLI","actor":"main","args":["check","xop-mac2"],"exit":1,"stdout":"","stderr":""}
+{"time":"2026-10-09T08:30:36.617Z","event":"lease CLI","actor":"main","args":["check","recurring-process-audit"],"exit":1,"stdout":"","stderr":""}
+{"time":"2026-10-09T08:30:36.617Z","event":"activation recovered old reservations","holderAlive":true}
+{"time":"2026-10-09T08:30:36.618Z","event":"offered","accepted":true}
+{"time":"2026-10-09T08:30:38.887Z","event":"failure","message":"Error: supervision branch provider failed after construction: Codex error: An error occurred while processing your request. You can retry your request, or contact us through our help center at help.openai.com if the error persists."}
+{"time":"2026-10-09T08:32:12.117Z","event":"lock","exit":0,"stdout":"lock acquired: harness pid 44563\n","stderr":"","pid":44563}
+{"time":"2026-10-09T08:32:27.193Z","event":"lease CLI","actor":"main","args":["check","xop-mac2"],"exit":1,"stdout":"","stderr":""}
+{"time":"2026-10-09T08:32:27.239Z","event":"lease CLI","actor":"main","args":["check","recurring-process-audit"],"exit":1,"stdout":"","stderr":""}
+{"time":"2026-10-09T08:32:27.239Z","event":"activation recovered old reservations","holderAlive":true}
+{"time":"2026-10-09T08:32:27.240Z","event":"offered","accepted":true}
+{"time":"2026-10-09T08:32:27.434Z","event":"lease CLI","actor":"branch","args":["claim","xop-mac2"],"exit":0,"stdout":"","stderr":""}
+{"time":"2026-10-09T08:32:27.481Z","event":"lease CLI","actor":"main","args":["claim","xop-mac2"],"exit":6,"stdout":"","stderr":"error: claim refused - task 'xop-mac2' is leased to the branch supervision actor (state/.lease-xop-mac2)\n"}
+{"time":"2026-10-09T08:32:27.531Z","event":"lease CLI","actor":"branch","args":["claim","recurring-process-audit"],"exit":0,"stdout":"","stderr":""}
+{"time":"2026-10-09T08:32:27.579Z","event":"lease CLI","actor":"main","args":["claim","recurring-process-audit"],"exit":6,"stdout":"","stderr":"error: claim refused - task 'recurring-process-audit' is leased to the branch supervision actor (state/.lease-recurring-process-audit)\n"}
+{"time":"2026-10-09T08:32:27.644Z","event":"lease CLI","actor":"main","args":["sweep"],"exit":0,"stdout":"","stderr":""}
+{"time":"2026-10-09T08:32:27.695Z","event":"lease CLI","actor":"main","args":["check","recurring-process-audit"],"exit":0,"stdout":"branch 44563 1791450821 live\n","stderr":""}
+{"time":"2026-10-09T08:32:27.695Z","event":"real turn reservations protected","holderAlive":true}
+{"time":"2026-10-09T08:33:07.006Z","event":"settled","holderAlive":true,"editorText":"UNSENT_ROUTING_DRAFT preserve verbatim","outcome":"success"}
+{"time":"2026-10-09T08:33:07.049Z","event":"lease CLI","actor":"main","args":["check","xop-mac2"],"exit":1,"stdout":"","stderr":""}
+{"time":"2026-10-09T08:33:07.101Z","event":"lease CLI","actor":"main","args":["claim","xop-mac2"],"exit":0,"stdout":"","stderr":""}
+{"time":"2026-10-09T08:33:07.156Z","event":"lease CLI","actor":"main","args":["release","xop-mac2"],"exit":0,"stdout":"","stderr":""}
+{"time":"2026-10-09T08:33:07.197Z","event":"lease CLI","actor":"main","args":["check","recurring-process-audit"],"exit":1,"stdout":"","stderr":""}
+{"time":"2026-10-09T08:33:07.251Z","event":"lease CLI","actor":"main","args":["claim","recurring-process-audit"],"exit":0,"stdout":"","stderr":""}
+{"time":"2026-10-09T08:33:07.301Z","event":"lease CLI","actor":"main","args":["release","recurring-process-audit"],"exit":0,"stdout":"","stderr":""}
+{"time":"2026-10-09T08:33:07.302Z","event":"preservation","mainLeaseUnchanged":true,"unlandedFileUnchanged":true,"pendingInput":"UNSENT_ROUTING_DRAFT preserve verbatim\n"}

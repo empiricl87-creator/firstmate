@@ -1,0 +1,2 @@
+1791535360	1	signal	xop-mac2.status	signal: isolated reservation lifecycle proof
+wake annotation: latest wake-EVENT observed at drain, not current state: xop-mac2.status: working: isolated reservation proof only; do not steer or stop any fleet worker

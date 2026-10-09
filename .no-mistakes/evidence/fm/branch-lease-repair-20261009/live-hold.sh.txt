@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+set -eu
+stage=$1
+printf '%s\n' "$stage" > "$FM_HOME/state/hold-stage"
+for ((i=0; i<900; i++)); do
+  if [ -e "$FM_HOME/state/continue-$stage" ]; then
+    printf 'Lab hold %s completed\n' "$stage"
+    exit 0
+  fi
+  sleep 0.1
+done
+echo 'Lab hold exceeded its 90-second bound' >&2
+exit 1

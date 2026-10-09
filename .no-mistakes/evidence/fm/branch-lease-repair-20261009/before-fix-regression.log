@@ -1,0 +1,9 @@
+not ok - branch settlement must release only completed work: file:///Users/abyss/.no-mistakes/worktrees/9546949aebcf/01M4FW422X5A7JEFBPPKJZ6ZP0/[eval1]:69
+  if (existsSync(`${home}/state/.lease-branch-driver`)) throw new Error(`${mode} settled turn retained its live-PID lease`);
+                                                              ^
+
+Error: success settled turn retained its live-PID lease
+    at file:///Users/abyss/.no-mistakes/worktrees/9546949aebcf/01M4FW422X5A7JEFBPPKJZ6ZP0/[eval1]:69:63
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+
+Node.js v26.10.0: expected exit 0, got 1

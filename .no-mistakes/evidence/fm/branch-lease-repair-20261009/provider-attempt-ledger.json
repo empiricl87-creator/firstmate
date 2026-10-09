@@ -1,0 +1,27 @@
+[
+  {
+    "session": "2026-10-09T08-30-36-830Z_01a11fc9-1f1e-7747-87fc-a24f084ed626.jsonl",
+    "model": "gpt-5.6-terra",
+    "outcome": "error",
+    "assistantMessages": 1,
+    "error": "Codex error: An error occurred while processing your request. You can retry your request, or contact us through our help center at help.openai.com if the error persists.",
+    "runtimeRetryEnabled": false
+  },
+  {
+    "session": "2026-10-09T08-32-27-343Z_01a11fca-cecf-7747-87fc-a25057c82187.jsonl",
+    "model": "gpt-5.6-sol",
+    "outcome": "stop",
+    "assistantMessages": 8,
+    "error": null,
+    "runtimeRetryEnabled": false
+  },
+  {
+    "session": "2026-10-09T08-42-40-628Z_01a11fd4-2a74-7526-a57b-1760022a6841.jsonl",
+    "model": "gpt-5.6-sol",
+    "outcome": "error",
+    "error": "fetch failed",
+    "externalProviderRequests": 0,
+    "endpoint": "reserved non-listening localhost port",
+    "runtimeRetryEnabled": false
+  }
+]

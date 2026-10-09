@@ -1,0 +1,9 @@
+Task metadata after failed turn:
+project=/Users/abyss/.no-mistakes/worktrees/9546949aebcf/01M4FW422X5A7JEFBPPKJZ6ZP0/.lab2/projects/reservation-proof
+window=fm-reservation-proof
+kind=ship
+harness=pi
+backend=manual
+
+Status after failed turn:
+working: isolated reservation proof only; do not steer or stop any fleet worker

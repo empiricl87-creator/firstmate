@@ -1,0 +1,10 @@
+{"actor": "branch", "argv": ["claim", "old-turn"], "exit": 0, "stdout": "", "stderr": ""}
+{"actor": "branch", "argv": ["claim", "successor-turn"], "exit": 0, "stdout": "", "stderr": ""}
+{"actor": "main", "argv": ["claim", "main-concurrent"], "exit": 0, "stdout": "", "stderr": ""}
+{"actor": "branch", "argv": ["release-actor", "--actor", "branch", "--holder-pid", "10661"], "exit": 6, "stdout": "", "stderr": "error: release-actor refused - expected holder 10661 no longer owns the live session lock\n"}
+{"actor": "main", "argv": ["release-actor", "--actor", "branch", "--holder-pid", "10667"], "exit": 6, "stdout": "", "stderr": "error: release-actor refused - the main supervision actor cannot release leases as branch\n"}
+{"actor": "branch", "argv": ["release-actor", "--actor", "branch", "--holder-pid", "0"], "exit": 2, "stdout": "", "stderr": "usage: fm-lease.sh claim|release <task> [--actor main|branch] | release-actor --actor main|branch [--holder-pid <pid>] | check <task> | sweep\n"}
+{"actor": "branch", "argv": ["release-actor", "--actor", "branch", "--holder-pid", "10667"], "exit": 0, "stdout": "", "stderr": ""}
+{"actor": "main", "argv": ["check", "main-concurrent"], "exit": 0, "stdout": "main 10667 1791534824 live\n", "stderr": ""}
+{"actor": "main", "argv": ["claim", "successor-turn"], "exit": 0, "stdout": "", "stderr": ""}
+{"result": "pass", "successorProtectedFromOldCleanup": true, "mainReservationUnchanged": true, "foreignPidLeaseUnchanged": true, "currentOwnerReleasedOnlyItsOwnBranchLeases": true}

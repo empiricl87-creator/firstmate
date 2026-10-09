@@ -1,0 +1,26 @@
+{"time":"2026-10-09T08:42:30.699Z","event":"lock","exit":0,"stdout":"lock acquired: harness pid 59601\n","stderr":"","pid":59601}
+{"time":"2026-10-09T08:42:30.755Z","event":"lease CLI","actor":"branch","args":["claim","xop-mac2"],"exit":0,"stdout":"","stderr":""}
+{"time":"2026-10-09T08:42:30.808Z","event":"lease CLI","actor":"main","args":["claim","xop-mac2"],"exit":6,"stdout":"","stderr":"error: claim refused - task 'xop-mac2' is leased to the branch supervision actor (state/.lease-xop-mac2)\n"}
+{"time":"2026-10-09T08:42:30.863Z","event":"lease CLI","actor":"branch","args":["claim","recurring-process-audit"],"exit":0,"stdout":"","stderr":""}
+{"time":"2026-10-09T08:42:30.916Z","event":"lease CLI","actor":"main","args":["claim","recurring-process-audit"],"exit":6,"stdout":"","stderr":"error: claim refused - task 'recurring-process-audit' is leased to the branch supervision actor (state/.lease-recurring-process-audit)\n"}
+{"time":"2026-10-09T08:42:30.970Z","event":"lease CLI","actor":"main","args":["claim","main-active"],"exit":0,"stdout":"","stderr":""}
+{"time":"2026-10-09T08:42:40.464Z","event":"lease CLI","actor":"main","args":["check","xop-mac2"],"exit":1,"stdout":"","stderr":""}
+{"time":"2026-10-09T08:42:40.512Z","event":"lease CLI","actor":"main","args":["check","recurring-process-audit"],"exit":1,"stdout":"","stderr":""}
+{"time":"2026-10-09T08:42:40.513Z","event":"activation recovered old reservations","holderAlive":true}
+{"time":"2026-10-09T08:42:40.519Z","event":"offered","accepted":true}
+{"time":"2026-10-09T08:42:40.737Z","event":"lease CLI","actor":"branch","args":["claim","xop-mac2"],"exit":0,"stdout":"","stderr":""}
+{"time":"2026-10-09T08:42:40.798Z","event":"lease CLI","actor":"main","args":["claim","xop-mac2"],"exit":6,"stdout":"","stderr":"error: claim refused - task 'xop-mac2' is leased to the branch supervision actor (state/.lease-xop-mac2)\n"}
+{"time":"2026-10-09T08:42:40.861Z","event":"lease CLI","actor":"branch","args":["claim","recurring-process-audit"],"exit":0,"stdout":"","stderr":""}
+{"time":"2026-10-09T08:42:40.919Z","event":"lease CLI","actor":"main","args":["claim","recurring-process-audit"],"exit":6,"stdout":"","stderr":"error: claim refused - task 'recurring-process-audit' is leased to the branch supervision actor (state/.lease-recurring-process-audit)\n"}
+{"time":"2026-10-09T08:42:40.994Z","event":"lease CLI","actor":"main","args":["sweep"],"exit":0,"stdout":"","stderr":""}
+{"time":"2026-10-09T08:42:41.066Z","event":"lease CLI","actor":"main","args":["check","recurring-process-audit"],"exit":0,"stdout":"branch 59601 1791450821 live\n","stderr":""}
+{"time":"2026-10-09T08:42:41.066Z","event":"real turn reservations protected","holderAlive":true}
+{"time":"2026-10-09T08:42:48.870Z","event":"outage transport URL","url":"http://127.0.0.1:57744/v1/codex/responses"}
+{"time":"2026-10-09T08:42:57.063Z","event":"settled","holderAlive":true,"editorText":"UNSENT_FAILURE_DRAFT preserve verbatim","outcome":"Error: supervision branch provider failed after construction: fetch failed"}
+{"time":"2026-10-09T08:42:57.131Z","event":"lease CLI","actor":"main","args":["check","xop-mac2"],"exit":1,"stdout":"","stderr":""}
+{"time":"2026-10-09T08:42:57.229Z","event":"lease CLI","actor":"main","args":["claim","xop-mac2"],"exit":0,"stdout":"","stderr":""}
+{"time":"2026-10-09T08:42:57.308Z","event":"lease CLI","actor":"main","args":["release","xop-mac2"],"exit":0,"stdout":"","stderr":""}
+{"time":"2026-10-09T08:42:57.356Z","event":"lease CLI","actor":"main","args":["check","recurring-process-audit"],"exit":1,"stdout":"","stderr":""}
+{"time":"2026-10-09T08:42:57.414Z","event":"lease CLI","actor":"main","args":["claim","recurring-process-audit"],"exit":0,"stdout":"","stderr":""}
+{"time":"2026-10-09T08:42:57.482Z","event":"lease CLI","actor":"main","args":["release","recurring-process-audit"],"exit":0,"stdout":"","stderr":""}
+{"time":"2026-10-09T08:42:57.497Z","event":"preservation","mainLeaseUnchanged":true,"unlandedFileUnchanged":true,"gitStatus":" M unlanded.txt\n?? untracked.txt\n","afterGitStatus":" M unlanded.txt\n?? untracked.txt\n","pendingInput":"UNSENT_FAILURE_DRAFT preserve verbatim\n"}

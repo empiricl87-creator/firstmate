@@ -1,0 +1,11 @@
+{"time":"2026-10-09T08:40:06.403Z","event":"fixture lock seeded for network-denied real Pi","pid":92393}
+{"time":"2026-10-09T08:40:06.459Z","event":"lease CLI","actor":"branch","args":["claim","xop-mac2"],"exit":0,"stdout":"","stderr":""}
+{"time":"2026-10-09T08:40:06.517Z","event":"lease CLI","actor":"main","args":["claim","xop-mac2"],"exit":6,"stdout":"","stderr":"error: claim refused - task 'xop-mac2' is leased to the branch supervision actor (state/.lease-xop-mac2)\n"}
+{"time":"2026-10-09T08:40:06.573Z","event":"lease CLI","actor":"branch","args":["claim","recurring-process-audit"],"exit":0,"stdout":"","stderr":""}
+{"time":"2026-10-09T08:40:06.627Z","event":"lease CLI","actor":"main","args":["claim","recurring-process-audit"],"exit":6,"stdout":"","stderr":"error: claim refused - task 'recurring-process-audit' is leased to the branch supervision actor (state/.lease-recurring-process-audit)\n"}
+{"time":"2026-10-09T08:40:06.682Z","event":"lease CLI","actor":"main","args":["claim","main-active"],"exit":0,"stdout":"","stderr":""}
+{"time":"2026-10-09T08:40:19.049Z","event":"lease CLI","actor":"main","args":["check","xop-mac2"],"exit":1,"stdout":"","stderr":""}
+{"time":"2026-10-09T08:40:19.093Z","event":"lease CLI","actor":"main","args":["check","recurring-process-audit"],"exit":1,"stdout":"","stderr":""}
+{"time":"2026-10-09T08:40:19.093Z","event":"activation recovered old reservations","holderAlive":true}
+{"time":"2026-10-09T08:40:19.102Z","event":"offered","accepted":true}
+{"time":"2026-10-09T08:40:19.215Z","event":"failure","message":"Error: Provider settled before reservation could be installed"}

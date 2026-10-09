@@ -1,0 +1,5 @@
+{"time":"2026-10-09T08:37:39.023Z","event":"lock","exit":1,"stdout":"","stderr":"error: cannot locate harness process in ancestry\n","pid":10304}
+{"time":"2026-10-09T08:37:47.800Z","event":"lease CLI","actor":"main","args":["check","xop-mac2"],"exit":1,"stdout":"","stderr":""}
+{"time":"2026-10-09T08:37:47.846Z","event":"lease CLI","actor":"main","args":["check","recurring-process-audit"],"exit":1,"stdout":"","stderr":""}
+{"time":"2026-10-09T08:37:47.847Z","event":"activation recovered old reservations","holderAlive":true}
+{"time":"2026-10-09T08:37:47.847Z","event":"failure","message":"Error: ENOENT: no such file or directory, open '/Users/abyss/.no-mistakes/worktrees/9546949aebcf/01M4FW422X5A7JEFBPPKJZ6ZP0/.lab2/state/.lease-main-active'"}

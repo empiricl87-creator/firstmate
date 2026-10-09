@@ -1,0 +1,103 @@
+import { appendFileSync, existsSync, readFileSync, writeFileSync } from "node:fs";
+import { spawnSync } from "node:child_process";
+import { createBranchDispatchOffer, FM_BRANCH_DISPATCH_EVENT } from "../.pi/extensions/lib/fm-branch-dispatch.ts";
+
+export default function (pi: any) {
+  const root = process.cwd();
+  const home = process.env.FM_HOME!;
+  const log = (event: string, detail: unknown = {}) => appendFileSync(`${home}/state/live-observations.jsonl`, JSON.stringify({time:new Date().toISOString(),event,...detail as object})+"\n");
+  if(process.env.FM_LOCAL_OUTAGE_PROOF==="1") {
+    const nativeFetch=globalThis.fetch;
+    globalThis.fetch=async (input:any,init:any)=>{
+      const url=typeof input==="string"?input:input instanceof URL?input.href:input.url;
+      log("outage transport URL",{url});
+      if(!url.startsWith(`http://127.0.0.1:${process.env.FM_OUTAGE_PORT}/`)) throw new Error("Evidence egress guard refused non-local request");
+      // This is real transport, with no fabricated response or SDK stub.
+      return nativeFetch(input,init);
+    };
+  }
+  const cli = (actor: string, ...args: string[]) => {
+    const r = spawnSync("bash", [`${root}/bin/fm-lease.sh`, ...args], {encoding:"utf8", env:{...process.env,FM_HOME:home,FM_SUPERVISION_ACTOR:actor,FM_LEASE_HOLDER_PID:String(process.pid)}});
+    log("lease CLI", {actor,args,exit:r.status,stdout:r.stdout,stderr:r.stderr});
+    return r;
+  };
+  pi.on("session_start", async () => {
+    if(process.env.FM_NETWORK_FAILURE_PROOF==="1") {
+      // macOS refuses its setuid /bin/ps under sandbox-exec. Seed only this
+      // disposable home's lock with this real Pi PID; acquisition is not the
+      // scenario under test. The unsandboxed controller verifies the PID.
+      writeFileSync(`${home}/state/.lock`,String(process.pid)+"\n");
+      log("fixture lock seeded for network-denied real Pi",{pid:process.pid});
+    } else {
+      const lock = spawnSync("bash", [`${root}/bin/fm-lock.sh`], {encoding:"utf8",env:process.env});
+      log("lock", {exit:lock.status,stdout:lock.stdout,stderr:lock.stderr,pid:process.pid});
+      if (lock.status!==0) throw new Error("Could not acquire disposable lab lock");
+    }
+    writeFileSync(`${home}/state/primary-pid`,String(process.pid));
+    if (!existsSync(`${home}/state/seeded`)) {
+      for (const task of ["xop-mac2","recurring-process-audit"]) {
+        if(cli("branch","claim",task).status!==0) throw new Error("seed claim failed");
+        writeFileSync(`${home}/state/.lease-${task}`,`branch\t${process.pid}\t1791450821\n`);
+        if(cli("main","claim",task).status!==6) throw new Error("old live reservation was not protective");
+      }
+      if(cli("main","claim","main-active").status!==0) throw new Error("main claim failed");
+      writeFileSync(`${home}/state/seeded`,"yes\n");
+    }
+    setTimeout(()=>writeFileSync(`${home}/state/ready`,"ready\n"),500);
+  });
+  pi.registerCommand("reservation-proof", {
+    description:"Run the isolated live reservation lifecycle proof",
+    handler: async (_: string,ctx:any) => {
+      void (async()=>{
+        await new Promise(resolve=>setTimeout(resolve,3000));
+        for (const task of ["xop-mac2","recurring-process-audit"]) {
+          if(cli("main","check",task).status!==1) throw new Error("activation retained old reservation");
+        }
+        log("activation recovered old reservations",{holderAlive:true});
+        const mainLease = readFileSync(`${home}/state/.lease-main-active`,"utf8");
+        const unlanded = readFileSync(`${home}/projects/reservation-proof/unlanded.txt`,"utf8");
+        const gitStatus = spawnSync("git",["-C",`${home}/projects/reservation-proof`,"status","--porcelain=v1"],{encoding:"utf8"}).stdout;
+        writeFileSync(`${home}/state/.wake-queue`, `${Math.floor(Date.now()/1000)}\t1\tsignal\txop-mac2.status\tsignal: isolated reservation lifecycle proof\n`);
+        const instructions = `signal: xop-mac2.status. This is a disposable lab lifecycle check. Do only these steps: drain the wake with bin/fm-wake-drain.sh; claim xop-mac2 with bin/fm-lease.sh claim xop-mac2; run bash .test-reservation-tmp/live-hold.sh before-report (it is an authorized bounded lab wait); report routine for xop-mac2 with summary "Isolated reservation check handled"; then run bash .test-reservation-tmp/live-hold.sh after-report; acknowledge exactly as the drain requested, release your xop-mac2 lease, and finish. No fleet recovery, no spawn, no remote calls, no project edits, and no other tasks are needed.`;
+        const offer = createBranchDispatchOffer(instructions,[`${home}/projects/reservation-proof`],false,true);
+        pi.events.emit(FM_BRANCH_DISPATCH_EVENT,offer);
+        log("offered",{accepted:offer.accepted});
+        if(!offer.accepted) throw new Error("Live branch refused eligible lab wake");
+        let injected=false;
+        let monitorFailure:unknown;
+        const monitor=setInterval(()=>{
+          if(injected || !existsSync(`${home}/state/.branch-eligible-rows`)) return;
+          injected=true;
+          try {
+            for(const task of ["xop-mac2","recurring-process-audit"]) {
+              if(cli("branch","claim",task).status!==0) throw new Error("in-flight claim failed");
+              writeFileSync(`${home}/state/.lease-${task}`,`branch\t${process.pid}\t1791450821\n`);
+              if(cli("main","claim",task).status!==6) throw new Error("main stole live turn");
+            }
+            cli("main","sweep");
+            if(cli("main","check","recurring-process-audit").status!==0) throw new Error("sweep stole in-flight lease");
+            log("real turn reservations protected",{holderAlive:true});
+          } catch(error) { monitorFailure=error; }
+        },1);
+        const failure=await offer.settlement.then(()=>null,error=>String(error));
+        clearInterval(monitor);
+        if(monitorFailure) throw monitorFailure;
+        if(!injected) throw new Error(`Provider settled before reservation could be installed: ${failure}`);
+        log("settled",{holderAlive:true,editorText:ctx.ui.getEditorText(),outcome:failure||"success"});
+        if((process.env.FM_NETWORK_FAILURE_PROOF==="1" || process.env.FM_LOCAL_OUTAGE_PROOF==="1") && !failure) throw new Error("Network-denied turn unexpectedly succeeded");
+        for(const task of ["xop-mac2","recurring-process-audit"]) {
+          if(cli("main","check",task).status!==1) throw new Error("settled reservation retained");
+          if(cli("main","claim",task).status!==0) throw new Error("authorized main routing still blocked");
+          cli("main","release",task);
+        }
+        if(readFileSync(`${home}/state/.lease-main-active`,"utf8")!==mainLease) throw new Error("Main lease changed");
+        if(readFileSync(`${home}/projects/reservation-proof/unlanded.txt`,"utf8")!==unlanded) throw new Error("Unlanded file changed");
+        const afterGitStatus=spawnSync("git",["-C",`${home}/projects/reservation-proof`,"status","--porcelain=v1"],{encoding:"utf8"}).stdout;
+        if(afterGitStatus!==gitStatus) throw new Error("Git work status changed");
+        log("preservation",{mainLeaseUnchanged:true,unlandedFileUnchanged:true,gitStatus,afterGitStatus,pendingInput:readFileSync(`${home}/state/pending-input.txt`,"utf8")});
+        writeFileSync(`${home}/state/live-complete`,"pass\n");
+        ctx.ui.notify("Reservation lifecycle proof passed","info");
+      })().catch(error=>{log("failure",{message:String(error)});writeFileSync(`${home}/state/live-failed`,String(error));ctx.ui.notify(String(error),"error");});
+    }
+  });
+}
